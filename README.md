@@ -6,6 +6,16 @@
 
 项目仓库：[Destroyer-0/TMI-Wordle](https://github.com/Destroyer-0/TMI-Wordle)
 
+## 许可证
+
+本仓库使用双许可，**不要把整个仓库当成 MIT。**
+
+- **代码与题库**（`index.html`、`style.css`、`game.js`、`data.js`、`beverages.js`、`scripts/` 等）：[MIT License](./LICENSE-CODE)
+- **游戏图片**（`BG.png`、`logo.png`、`foods-atlas.png`、`beverages-atlas.png`）：[专有许可](./LICENSE-ASSETS)，版权归《东方夜雀食堂》权利方二色幽紫蝶。克隆或 fork 本仓库不等于获得图片授权；用于其他项目须另行向权利方申请书面许可。
+- `github-mark.svg` 为 GitHub 标志，不适用上述许可。
+
+完整划分见 [LICENSE](./LICENSE)。
+
 ## 游戏特色
 
 - 每日挑战：以 2026 年 1 月 1 日为第 1 期，按北京时间每天 00:00 更新。
@@ -21,69 +31,6 @@
 - 提供玩法说明与游戏统计。
 - 支持键盘操作、手机布局和基础无障碍功能。
 
-## 题库
-
-料理题库位于 [`data.js`](./data.js)，目前包含本体及 DLC1–DLC5 共 163 道料理；酒水题库位于 [`beverages.js`](./beverages.js)，包含 46 款酒水。
-
-每条料理记录使用以下结构：
-
-```js
-{
-  id: "recipe-001",
-  name: "料理名称",
-  cookware: "煮锅",
-  price: 8,
-  level: 1,
-  ingredients: ["海苔"],
-  time: 6,
-  time60: 3.6,
-  positiveTags: ["素", "家常"],
-  negativeTags: ["重油"],
-  acquisition: "初始拥有",
-  dlc: "本体"
-}
-```
-
-`id` 和料理名称应保持唯一。食材与 Tag 使用数组；没有反向 Tag 时使用空数组。制作时间会显示为 `time（time60）`，例如 `3（1.8）`。
-
-料理与酒水图标会分别打包到 `foods-atlas.png` 和 `beverages-atlas.png`。更新题库或原始图标后，在项目目录重新运行：
-
-```powershell
-.\scripts\build-atlas.ps1
-```
-
-## 本地运行
-
-在项目目录启动一个静态文件服务器：
-
-```powershell
-python -m http.server 8000
-```
-
-然后访问 `http://localhost:8000/`。
-
-也可以直接打开 `index.html` 游玩。
-
-## 项目结构
-
-```text
-.
-├── index.html   页面结构
-├── style.css    视觉样式与响应式布局
-├── game.js      游戏逻辑与本地存档
-├── data.js      料理题库
-├── beverages.js 酒水题库
-├── Foods/       料理图标（按料理名称索引）
-├── Bev/         酒水图标（按酒水名称索引）
-├── foods-atlas.png      料理图标合集
-├── beverages-atlas.png  酒水图标合集
-├── scripts/build-atlas.ps1  图标合集生成脚本
-├── BG.png       页面背景
-├── logo.png     网站图标
-├── github-mark.svg  GitHub 仓库按钮图标
-└── .nojekyll    GitHub Pages 静态发布标记
-```
-
 ## 数据与版权说明
 
-本项目为非官方粉丝制作项目，仅用于交流与娱乐，不隶属于或代表原作《东方夜雀食堂》及其权利方二色幽紫蝶。游戏名称、料理资料及相关内容的权利归各自权利方所有。
+本项目为非官方粉丝制作项目，仅用于交流与娱乐，不隶属于或代表原作《东方夜雀食堂》及其权利方二色幽紫蝶。游戏名称及相关商标归权利方所有。本仓库中的游戏图片须按 [LICENSE-ASSETS](./LICENSE-ASSETS) 使用；代码与题库见 [LICENSE-CODE](./LICENSE-CODE)。

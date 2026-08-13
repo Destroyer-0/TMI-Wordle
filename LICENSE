@@ -1,0 +1,18 @@
+This repository is dual-licensed.
+
+1. Original source code, game data, and documentation — MIT License
+   See LICENSE-CODE.
+   Applies to: index.html, style.css, game.js, data.js, beverages.js,
+   scripts/, README.md, LICENSE, LICENSE-CODE, .gitignore, .nojekyll
+
+2. Game images — proprietary, all rights reserved
+   See LICENSE-ASSETS.
+   Applies to: BG.png, logo.png, foods-atlas.png, beverages-atlas.png,
+   and any other game image in this repository. Original per-item icon
+   folders are not published.
+
+3. github-mark.svg is a GitHub trademark / logo and is not licensed under
+   MIT or LICENSE-ASSETS.
+
+Forking or cloning this repository does not grant any license to use the
+game images in other projects.
