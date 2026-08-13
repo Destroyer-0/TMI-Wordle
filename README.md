@@ -46,6 +46,12 @@
 
 `id` 和料理名称应保持唯一。食材与 Tag 使用数组；没有反向 Tag 时使用空数组。制作时间会显示为 `time（time60）`，例如 `3（1.8）`。
 
+料理与酒水图标会分别打包到 `foods-atlas.png` 和 `beverages-atlas.png`。更新题库或原始图标后，在项目目录重新运行：
+
+```powershell
+.\scripts\build-atlas.ps1
+```
+
 ## 本地运行
 
 在项目目录启动一个静态文件服务器：
@@ -69,6 +75,9 @@ python -m http.server 8000
 ├── beverages.js 酒水题库
 ├── Foods/       料理图标（按料理名称索引）
 ├── Bev/         酒水图标（按酒水名称索引）
+├── foods-atlas.png      料理图标合集
+├── beverages-atlas.png  酒水图标合集
+├── scripts/build-atlas.ps1  图标合集生成脚本
 ├── BG.png       页面背景
 ├── logo.png     网站图标
 ├── github-mark.svg  GitHub 仓库按钮图标

@@ -14,6 +14,7 @@
       legacyGuessLimit: 8,
       placeholder: "例如：海鲜味噌汤",
       headers: ["料理", "厨具", "价格", "等级", "食材", "制作时间", "正向 Tag", "反向 Tag", "获得方式", "DLC"],
+      atlas: { url: "./foods-atlas.png?v=20260813-3", columns: 16, rows: 11 },
       storage: {
         dailyPrefix: "tmi-wordle:recipe:v1:daily:",
         infinite: "tmi-wordle:recipe:v1:infinite",
@@ -27,6 +28,7 @@
       defaultGuesses: 6,
       placeholder: "例如：绿茶",
       headers: ["酒水", "等级", "价格", "正向 Tag", "DLC"],
+      atlas: { url: "./beverages-atlas.png?v=20260813-3", columns: 8, rows: 6 },
       storage: {
         dailyPrefix: "tmi-wordle:beverage:v1:daily:",
         infinite: "tmi-wordle:beverage:v1:infinite",
@@ -272,20 +274,16 @@
   }
 
   function listLabel(values) { return values?.length ? values.join("、") : "无"; }
-  function iconSource(item) {
-    const folder = category === "recipe" ? "Foods" : "Bev";
-    const filename = item.name.replace(/^"(.*)"$/, "$1");
-    return `./${folder}/${encodeURIComponent(filename)}.png`;
-  }
   function createItemIcon(item, className) {
-    const icon = document.createElement("img");
+    const atlas = categoryConfig().atlas;
+    const index = dataSet().indexOf(item);
+    const size = className === "suggestion-icon" ? 38 : 42;
+    const icon = document.createElement("span");
     icon.className = className;
-    icon.src = iconSource(item);
-    icon.alt = "";
-    icon.width = 42;
-    icon.height = 42;
-    icon.loading = "lazy";
-    icon.addEventListener("error", () => { icon.hidden = true; }, { once: true });
+    icon.setAttribute("aria-hidden", "true");
+    icon.style.backgroundImage = `url("${atlas.url}")`;
+    icon.style.backgroundSize = `${atlas.columns * size}px ${atlas.rows * size}px`;
+    icon.style.backgroundPosition = `-${(index % atlas.columns) * size}px -${Math.floor(index / atlas.columns) * size}px`;
     return icon;
   }
   function timeLabel(item) {
