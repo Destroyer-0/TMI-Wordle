@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f7f1e8" />
+    <meta name="description" content="TMI Wordle：通过厨具、价格、食材与标签等线索猜出今日料理。" />
+    <title>TMI Wordle</title>
+    <link rel="icon" href="./logo.png" type="image/png" />
+    <link rel="stylesheet" href="./style.css" />
+    <script src="./data.js" defer></script>
+    <script src="./game.js" defer></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="./" aria-label="TMI Wordle 首页">
+        <img class="brand-mark" src="./logo.png" alt="" width="34" height="34" />
+        <span>夜雀食堂今天的饭</span>
+      </a>
+      <nav class="header-actions" aria-label="辅助功能">
+        <button class="icon-button" id="help-button" type="button" aria-label="查看玩法说明" title="玩法说明">?</button>
+        <button class="icon-button" id="stats-button" type="button" aria-label="查看统计" title="统计">▥</button>
+      </nav>
+    </header>
+
+    <main class="game-shell">
+      <section class="hero" aria-labelledby="game-title">
+        <p class="eyebrow" id="challenge-label">每日挑战</p>
+        <h1 id="game-title">夜雀食堂今天的饭</h1>
+        <p class="subtitle">要来点文化底蕴吗？</p>
+
+        <div class="mode-switch" role="group" aria-label="游戏模式">
+          <button class="mode-button active" type="button" data-mode="daily" aria-pressed="true">每日挑战</button>
+          <button class="mode-button" type="button" data-mode="infinite" aria-pressed="false">无限模式</button>
+        </div>
+      </section>
+
+      <section class="game-card" aria-label="猜谜区域">
+        <div class="round-meta">
+          <span id="round-number">第 1 期</span>
+          <span id="attempt-counter">剩余 8 次</span>
+        </div>
+
+        <form id="guess-form" autocomplete="off">
+          <label for="guess-input">输入料理名称</label>
+          <div class="guess-controls">
+            <div class="autocomplete">
+              <input
+                id="guess-input"
+                name="guess"
+                type="text"
+                placeholder="例如：海鲜味噌汤"
+                aria-autocomplete="list"
+                aria-controls="suggestions"
+                aria-expanded="false"
+                aria-describedby="input-hint"
+                maxlength="40"
+              />
+              <ul id="suggestions" class="suggestions" role="listbox" hidden></ul>
+            </div>
+            <button class="primary-button" id="submit-button" type="submit">猜一下</button>
+          </div>
+          <p class="input-hint" id="input-hint">输入关键词并从候选料理中选择。</p>
+          <p class="form-message" id="form-message" role="status" aria-live="polite"></p>
+        </form>
+
+        <div class="result-wrap" id="result-wrap" hidden>
+          <table class="result-table">
+            <caption class="sr-only">猜测结果与属性反馈</caption>
+            <thead>
+              <tr>
+                <th scope="col">料理</th>
+                <th scope="col">厨具</th>
+                <th scope="col">价格</th>
+                <th scope="col">等级</th>
+                <th scope="col">食材</th>
+                <th scope="col">制作时间</th>
+                <th scope="col">正向 Tag</th>
+                <th scope="col">反向 Tag</th>
+                <th scope="col">获得方式</th>
+                <th scope="col">DLC</th>
+              </tr>
+            </thead>
+            <tbody id="result-body"></tbody>
+          </table>
+        </div>
+
+        <div class="legend" aria-label="反馈颜色说明">
+          <span><i class="legend-dot exact"></i>相同</span>
+          <span><i class="legend-dot near"></i>部分重合</span>
+          <span><i class="legend-dot miss"></i>不同</span>
+        </div>
+
+        <section class="end-panel" id="end-panel" aria-live="polite" hidden>
+          <p class="end-kicker" id="end-kicker">挑战完成</p>
+          <h2 id="end-title">猜中了！</h2>
+          <p id="end-copy"></p>
+          <div class="end-actions">
+            <button class="primary-button" id="share-button" type="button">分享结果</button>
+            <button class="secondary-button" id="new-game-button" type="button">再来一局</button>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <footer aria-label="今天在夜雀食堂吃什么？">
+      <span class="footer-default" aria-hidden="true">今天在夜雀食堂吃什么？</span>
+      <span class="footer-hover" aria-hidden="true">是啊，吃什么</span>
+    </footer>
+
+    <dialog id="help-dialog" aria-labelledby="help-title">
+      <div class="dialog-head">
+        <h2 id="help-title">怎么玩</h2>
+        <button class="close-button" type="button" data-close aria-label="关闭玩法说明">×</button>
+      </div>
+      <div class="dialog-content">
+        <p>你有 8 次机会猜出今天夜雀食堂出售的料理。输入料理名称，并从候选项中选择。</p>
+        <div class="example-row" aria-label="反馈示例">
+          <span class="feedback exact">煮锅</span>
+          <span class="feedback near">海苔</span>
+          <span class="feedback miss">DLC2</span>
+        </div>
+        <ul>
+          <li><strong>绿色</strong>：与答案完全相同。</li>
+          <li><strong>黄色</strong>：食材或 Tag 与答案部分重合。</li>
+          <li><strong>灰色</strong>：与答案不同或没有重合。</li>
+          <li><strong>↑ / ↓</strong>：答案的数字更高 / 更低。</li>
+        </ul>
+        <p>每日挑战每天只有一个共同答案；无限模式可以一直玩。</p>
+      </div>
+    </dialog>
+
+    <dialog id="stats-dialog" aria-labelledby="stats-title">
+      <div class="dialog-head">
+        <h2 id="stats-title">游戏统计</h2>
+        <button class="close-button" type="button" data-close aria-label="关闭统计">×</button>
+      </div>
+      <div class="stats-grid">
+        <div><strong id="stat-played">0</strong><span>游戏</span></div>
+        <div><strong id="stat-win-rate">0%</strong><span>胜率</span></div>
+        <div><strong id="stat-streak">0</strong><span>当前连胜</span></div>
+        <div><strong id="stat-best">0</strong><span>最高连胜</span></div>
+      </div>
+      <p class="stats-note">完成一局后，统计会自动保存在这台设备上。</p>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </body>
+</html>
