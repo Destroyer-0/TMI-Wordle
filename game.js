@@ -272,6 +272,22 @@
   }
 
   function listLabel(values) { return values?.length ? values.join("、") : "无"; }
+  function iconSource(item) {
+    const folder = category === "recipe" ? "Foods" : "Bev";
+    const filename = item.name.replace(/^"(.*)"$/, "$1");
+    return `./${folder}/${encodeURIComponent(filename)}.png`;
+  }
+  function createItemIcon(item, className) {
+    const icon = document.createElement("img");
+    icon.className = className;
+    icon.src = iconSource(item);
+    icon.alt = "";
+    icon.width = 42;
+    icon.height = 42;
+    icon.loading = "lazy";
+    icon.addEventListener("error", () => { icon.hidden = true; }, { once: true });
+    return icon;
+  }
   function timeLabel(item) {
     const primary = Number.isInteger(item.time) ? item.time : item.time.toFixed(1);
     const label = `${primary}（${item.time60.toFixed(1)}）`;
@@ -306,8 +322,18 @@
           ];
       values.forEach((value, index) => {
         const cell = document.createElement("td");
-        cell.textContent = value.text;
-        if (index > 0) cell.className = `feedback ${value.className}${value.wide ? " detail-cell" : ""}`;
+        if (index === 0) {
+          cell.className = "item-cell";
+          const identity = document.createElement("span");
+          identity.className = "item-identity";
+          const name = document.createElement("span");
+          name.textContent = value.text;
+          identity.append(createItemIcon(guess, "result-icon"), name);
+          cell.appendChild(identity);
+        } else {
+          cell.textContent = value.text;
+          cell.className = `feedback ${value.className}${value.wide ? " detail-cell" : ""}`;
+        }
         row.appendChild(cell);
       });
       els.resultBody.appendChild(row);
@@ -382,7 +408,10 @@
       detail.textContent = category === "beverage"
         ? `${item.dlc} · Lv.${item.level} · ${item.price}`
         : `${item.dlc} · ${item.cookware} · Lv.${item.level}`;
-      option.append(name, detail);
+      const copy = document.createElement("span");
+      copy.className = "suggestion-copy";
+      copy.append(name, detail);
+      option.append(createItemIcon(item, "suggestion-icon"), copy);
       option.addEventListener("pointerdown", (event) => { event.preventDefault(); selectSuggestion(index); });
       els.suggestions.appendChild(option);
     });
