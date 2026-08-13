@@ -1,15 +1,39 @@
 (function () {
   "use strict";
 
-  const DATA = Array.isArray(window.TMI_RECIPES) ? window.TMI_RECIPES : [];
-  const MAX_GUESSES = 8;
+  const MIN_GUESSES = 1;
+  const MAX_GUESSES = 20;
   const START_DATE_UTC = Date.UTC(2026, 0, 1);
   const DAY_MS = 86400000;
   const BEIJING_OFFSET_MS = 8 * 60 * 60 * 1000;
-  const STORAGE = {
-    dailyPrefix: "tmi-wordle:recipe:v1:daily:",
-    infinite: "tmi-wordle:recipe:v1:infinite",
-    stats: "tmi-wordle:recipe:v1:stats"
+  const CATEGORIES = {
+    recipe: {
+      data: Array.isArray(window.TMI_RECIPES) ? window.TMI_RECIPES : [],
+      noun: "料理",
+      defaultGuesses: 6,
+      legacyGuessLimit: 8,
+      placeholder: "例如：海鲜味噌汤",
+      headers: ["料理", "厨具", "价格", "等级", "食材", "制作时间", "正向 Tag", "反向 Tag", "获得方式", "DLC"],
+      storage: {
+        dailyPrefix: "tmi-wordle:recipe:v1:daily:",
+        infinite: "tmi-wordle:recipe:v1:infinite",
+        stats: "tmi-wordle:recipe:v1:stats",
+        guessLimit: "tmi-wordle:recipe:v1:guess-limit"
+      }
+    },
+    beverage: {
+      data: Array.isArray(window.TMI_BEVERAGES) ? window.TMI_BEVERAGES : [],
+      noun: "酒水",
+      defaultGuesses: 6,
+      placeholder: "例如：绿茶",
+      headers: ["酒水", "等级", "价格", "正向 Tag", "DLC"],
+      storage: {
+        dailyPrefix: "tmi-wordle:beverage:v1:daily:",
+        infinite: "tmi-wordle:beverage:v1:infinite",
+        stats: "tmi-wordle:beverage:v1:stats",
+        guessLimit: "tmi-wordle:beverage:v1:guess-limit"
+      }
+    }
   };
 
   const els = {
@@ -19,6 +43,9 @@
     suggestions: document.querySelector("#suggestions"),
     message: document.querySelector("#form-message"),
     resultWrap: document.querySelector("#result-wrap"),
+    resultTable: document.querySelector(".result-table"),
+    resultCaption: document.querySelector("#result-caption"),
+    resultHead: document.querySelector("#result-head"),
     resultBody: document.querySelector("#result-body"),
     counter: document.querySelector("#attempt-counter"),
     roundNumber: document.querySelector("#round-number"),
@@ -27,20 +54,29 @@
     endKicker: document.querySelector("#end-kicker"),
     endTitle: document.querySelector("#end-title"),
     endCopy: document.querySelector("#end-copy"),
-    share: document.querySelector("#share-button"),
     newGame: document.querySelector("#new-game-button"),
     help: document.querySelector("#help-dialog"),
     stats: document.querySelector("#stats-dialog"),
+    statsScope: document.querySelector("#stats-scope"),
+    limitForm: document.querySelector("#limit-form"),
+    limitInput: document.querySelector("#max-guesses-input"),
+    guessLabel: document.querySelector("#guess-label"),
+    inputHint: document.querySelector("#input-hint"),
     toast: document.querySelector("#toast")
   };
 
   let mode = "daily";
+  let category = "recipe";
   let answer = null;
   let guesses = [];
   let gameStatus = "playing";
   let activeSuggestion = -1;
   let visibleSuggestions = [];
   let toastTimer;
+  let guessLimit = CATEGORIES.recipe.defaultGuesses;
+
+  function categoryConfig() { return CATEGORIES[category]; }
+  function dataSet() { return categoryConfig().data; }
 
   function beijingDateKey() {
     return new Date(Date.now() + BEIJING_OFFSET_MS).toISOString().slice(0, 10);
@@ -53,15 +89,34 @@
   }
 
   function dailyKey() { return beijingDateKey(); }
-  function dailyAnswer() { return DATA[beijingDayNumber() % DATA.length]; }
+  function dailyAnswer() {
+    const data = dataSet();
+    return data[beijingDayNumber() % data.length];
+  }
   function safeParse(value, fallback) {
     try { return value ? JSON.parse(value) : fallback; } catch (_) { return fallback; }
   }
 
+  function clampGuessLimit(value) {
+    const parsed = Number.parseInt(value, 10);
+    if (!Number.isFinite(parsed)) return categoryConfig().defaultGuesses;
+    return Math.min(MAX_GUESSES, Math.max(MIN_GUESSES, parsed));
+  }
+
+  function emptyStats() { return { played: 0, wins: 0, streak: 0, best: 0 }; }
+  function loadStatsStore() {
+    const config = categoryConfig();
+    const saved = safeParse(localStorage.getItem(config.storage.stats), null);
+    if (saved?.byLimit) return saved;
+    if (saved && typeof saved.played === "number") return { byLimit: { [config.legacyGuessLimit || config.defaultGuesses]: saved } };
+    return { byLimit: {} };
+  }
   function loadStats() {
-    return { played: 0, wins: 0, streak: 0, best: 0, ...safeParse(localStorage.getItem(STORAGE.stats), {}) };
+    const store = loadStatsStore();
+    return { ...emptyStats(), ...(store.byLimit[guessLimit] || {}) };
   }
   function saveStats(won) {
+    const store = loadStatsStore();
     const stats = loadStats();
     stats.played += 1;
     if (won) {
@@ -71,7 +126,8 @@
     } else {
       stats.streak = 0;
     }
-    localStorage.setItem(STORAGE.stats, JSON.stringify(stats));
+    store.byLimit[guessLimit] = stats;
+    localStorage.setItem(categoryConfig().storage.stats, JSON.stringify(store));
     updateStatsView();
   }
   function updateStatsView() {
@@ -80,28 +136,49 @@
     document.querySelector("#stat-win-rate").textContent = stats.played ? `${Math.round((stats.wins / stats.played) * 100)}%` : "0%";
     document.querySelector("#stat-streak").textContent = stats.streak;
     document.querySelector("#stat-best").textContent = stats.best;
+    els.statsScope.textContent = `猜${categoryConfig().noun} · ${guessLimit} 次模式`;
   }
 
   function randomAnswer(previousId) {
-    if (DATA.length < 2) return DATA[0];
+    const data = dataSet();
+    if (data.length < 2) return data[0];
     let next;
-    do { next = DATA[Math.floor(Math.random() * DATA.length)]; } while (next.id === previousId);
+    do { next = data[Math.floor(Math.random() * data.length)]; } while (next.id === previousId);
     return next;
   }
 
+  function baseGameStorageKey(selectedMode) {
+    const storage = categoryConfig().storage;
+    return selectedMode === "daily" ? storage.dailyPrefix + dailyKey() : storage.infinite;
+  }
+  function gameStorageKey(selectedMode) {
+    return `${baseGameStorageKey(selectedMode)}:limit:${guessLimit}`;
+  }
+
   function saveGame() {
-    const state = { answerId: answer.id, guessIds: guesses.map((item) => item.id), status: gameStatus };
-    const key = mode === "daily" ? STORAGE.dailyPrefix + dailyKey() : STORAGE.infinite;
-    localStorage.setItem(key, JSON.stringify(state));
+    const state = { answerId: answer.id, guessIds: guesses.map((item) => item.id), status: gameStatus, guessLimit };
+    localStorage.setItem(gameStorageKey(mode), JSON.stringify(state));
   }
 
   function loadGame(nextMode, forceNew) {
     mode = nextMode;
-    const key = mode === "daily" ? STORAGE.dailyPrefix + dailyKey() : STORAGE.infinite;
-    const saved = forceNew ? null : safeParse(localStorage.getItem(key), null);
+    const data = dataSet();
+    if (!data.length) {
+      answer = null;
+      guesses = [];
+      gameStatus = "playing";
+      render();
+      return;
+    }
+    const key = gameStorageKey(mode);
+    let saved = forceNew ? null : safeParse(localStorage.getItem(key), null);
+    if (!saved && !forceNew && categoryConfig().legacyGuessLimit === guessLimit) {
+      saved = safeParse(localStorage.getItem(baseGameStorageKey(mode)), null);
+      if (saved) localStorage.setItem(key, JSON.stringify({ ...saved, guessLimit }));
+    }
     const fixedAnswer = mode === "daily" ? dailyAnswer() : null;
-    answer = fixedAnswer || DATA.find((item) => item.id === saved?.answerId) || randomAnswer();
-    guesses = (saved?.guessIds || []).map((id) => DATA.find((item) => item.id === id)).filter(Boolean);
+    answer = fixedAnswer || data.find((item) => item.id === saved?.answerId) || randomAnswer();
+    guesses = (saved?.guessIds || []).map((id) => data.find((item) => item.id === id)).filter(Boolean);
     gameStatus = saved?.status || "playing";
     if (mode === "daily" && saved?.answerId && saved.answerId !== fixedAnswer.id) {
       guesses = [];
@@ -116,15 +193,38 @@
     render();
   }
 
+  function applyGuessLimit(event) {
+    event.preventDefault();
+    const nextLimit = clampGuessLimit(els.limitInput.value);
+    els.limitInput.value = nextLimit;
+    if (nextLimit === guessLimit) {
+      showToast(`当前已经是 ${guessLimit} 次模式`);
+      return;
+    }
+    guessLimit = nextLimit;
+    localStorage.setItem(categoryConfig().storage.guessLimit, String(guessLimit));
+    loadGame(mode, false);
+    showToast(`已切换到 ${guessLimit} 次模式`);
+  }
+
+  function switchCategory(nextCategory) {
+    if (!CATEGORIES[nextCategory] || nextCategory === category) return;
+    category = nextCategory;
+    const config = categoryConfig();
+    guessLimit = clampGuessLimit(localStorage.getItem(config.storage.guessLimit) || config.defaultGuesses);
+    els.input.value = "";
+    loadGame(mode, false);
+  }
+
   function normalize(value) { return value.trim().toLocaleLowerCase("zh-CN").replace(/\s+/g, ""); }
   function findExact(value) {
     const query = normalize(value);
-    return DATA.find((item) => normalize(item.name) === query);
+    return dataSet().find((item) => normalize(item.name) === query);
   }
   function findMatches(value) {
     const query = normalize(value);
     if (!query) return [];
-    return DATA.filter((item) => normalize(item.name).includes(query)).slice(0, 8);
+    return dataSet().filter((item) => normalize(item.name).includes(query)).slice(0, 8);
   }
 
   function setState(guessValues, answerValues) {
@@ -150,6 +250,14 @@
     return acquisitionType(guessValue) === acquisitionType(answerValue) ? "near" : "miss";
   }
   function comparisonFor(guess) {
+    if (category === "beverage") {
+      return {
+        level: guess.level === answer.level ? "exact" : "miss",
+        price: guess.price === answer.price ? "exact" : "miss",
+        positiveTags: setState(guess.positiveTags, answer.positiveTags),
+        dlc: guess.dlc === answer.dlc ? "exact" : "miss"
+      };
+    }
     return {
       cookware: guess.cookware === answer.cookware ? "exact" : "miss",
       price: guess.price === answer.price ? "exact" : "miss",
@@ -176,18 +284,26 @@
     guesses.forEach((guess) => {
       const states = comparisonFor(guess);
       const row = document.createElement("tr");
-      const values = [
-        { text: guess.name, className: "" },
-        { text: guess.cookware, className: states.cookware },
-        { text: numericLabel(guess.price, answer.price), className: states.price },
-        { text: numericLabel(guess.level, answer.level), className: states.level },
-        { text: listLabel(guess.ingredients), className: states.ingredients, wide: true },
-        { text: timeLabel(guess), className: states.time },
-        { text: listLabel(guess.positiveTags), className: states.positiveTags, wide: true },
-        { text: listLabel(guess.negativeTags), className: states.negativeTags, wide: true },
-        { text: `${acquisitionType(guess.acquisition)}\n${guess.acquisition}`, className: states.acquisition, wide: true },
-        { text: guess.dlc, className: states.dlc }
-      ];
+      const values = category === "beverage"
+        ? [
+            { text: guess.name, className: "" },
+            { text: numericLabel(guess.level, answer.level), className: states.level },
+            { text: numericLabel(guess.price, answer.price), className: states.price },
+            { text: listLabel(guess.positiveTags), className: states.positiveTags, wide: true },
+            { text: guess.dlc, className: states.dlc }
+          ]
+        : [
+            { text: guess.name, className: "" },
+            { text: guess.cookware, className: states.cookware },
+            { text: numericLabel(guess.price, answer.price), className: states.price },
+            { text: numericLabel(guess.level, answer.level), className: states.level },
+            { text: listLabel(guess.ingredients), className: states.ingredients, wide: true },
+            { text: timeLabel(guess), className: states.time },
+            { text: listLabel(guess.positiveTags), className: states.positiveTags, wide: true },
+            { text: listLabel(guess.negativeTags), className: states.negativeTags, wide: true },
+            { text: `${acquisitionType(guess.acquisition)}\n${guess.acquisition}`, className: states.acquisition, wide: true },
+            { text: guess.dlc, className: states.dlc }
+          ];
       values.forEach((value, index) => {
         const cell = document.createElement("td");
         cell.textContent = value.text;
@@ -199,6 +315,27 @@
     els.resultWrap.hidden = guesses.length === 0;
   }
 
+  function renderCategoryView() {
+    const config = categoryConfig();
+    document.querySelectorAll(".category-button").forEach((button) => {
+      const active = button.dataset.category === category;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+    });
+    els.guessLabel.textContent = `输入${config.noun}名称`;
+    els.input.placeholder = config.placeholder;
+    els.inputHint.textContent = `输入关键词并从候选${config.noun}中选择。`;
+    els.resultCaption.textContent = `${config.noun}猜测结果与属性反馈`;
+    els.resultTable.classList.toggle("beverage-table", category === "beverage");
+    els.resultHead.textContent = "";
+    config.headers.forEach((label) => {
+      const header = document.createElement("th");
+      header.scope = "col";
+      header.textContent = label;
+      els.resultHead.appendChild(header);
+    });
+  }
+
   function render() {
     document.querySelectorAll(".mode-button").forEach((button) => {
       const active = button.dataset.mode === mode;
@@ -207,21 +344,25 @@
     });
     els.challengeLabel.textContent = mode === "daily" ? "每日挑战" : "无限模式";
     els.roundNumber.textContent = mode === "daily" ? `第 ${beijingDayNumber() + 1} 期` : "随机谜题";
-    els.counter.textContent = gameStatus === "playing" ? `剩余 ${MAX_GUESSES - guesses.length} 次` : `${guesses.length} / ${MAX_GUESSES} 次`;
+    els.counter.textContent = gameStatus === "playing" ? `剩余 ${guessLimit - guesses.length} 次` : `${guesses.length} / ${guessLimit} 次`;
+    els.limitInput.value = guessLimit;
+    renderCategoryView();
     renderRows();
     const ended = gameStatus !== "playing";
-    els.input.disabled = ended;
-    els.submit.disabled = ended;
+    const unavailable = !dataSet().length;
+    els.input.disabled = ended || unavailable;
+    els.submit.disabled = ended || unavailable;
     els.endPanel.hidden = !ended;
     els.newGame.hidden = mode === "daily";
+    els.newGame.parentElement.hidden = mode === "daily";
     if (ended) {
       const won = gameStatus === "won";
       els.endKicker.textContent = won ? "挑战完成" : "本局结束";
       els.endTitle.textContent = won ? "猜中了！" : "差一点！";
-      els.endCopy.textContent = won ? `你用了 ${guesses.length} 次猜出这道料理。` : `答案是「${answer.name}」。`;
+      els.endCopy.textContent = won ? `你用了 ${guesses.length} 次猜出这${category === "recipe" ? "道" : "款"}${categoryConfig().noun}。` : `答案是「${answer.name}」。`;
     }
     closeSuggestions();
-    els.message.textContent = "";
+    els.message.textContent = unavailable ? `${categoryConfig().noun}题库为空，请检查数据文件。` : "";
     updateStatsView();
   }
 
@@ -238,7 +379,9 @@
       const name = document.createElement("strong");
       name.textContent = item.name;
       const detail = document.createElement("small");
-      detail.textContent = `${item.dlc} · ${item.cookware} · Lv.${item.level}`;
+      detail.textContent = category === "beverage"
+        ? `${item.dlc} · Lv.${item.level} · ${item.price}`
+        : `${item.dlc} · ${item.cookware} · Lv.${item.level}`;
       option.append(name, detail);
       option.addEventListener("pointerdown", (event) => { event.preventDefault(); selectSuggestion(index); });
       els.suggestions.appendChild(option);
@@ -278,12 +421,12 @@
     if (gameStatus !== "playing") return;
     const guess = findExact(els.input.value);
     if (!guess) {
-      els.message.textContent = "题库中没有这道料理，请从候选项中选择。";
+      els.message.textContent = `题库中没有这${category === "recipe" ? "道" : "款"}${categoryConfig().noun}，请从候选项中选择。`;
       els.input.focus();
       return;
     }
     if (guesses.some((item) => item.id === guess.id)) {
-      els.message.textContent = "这道料理已经猜过了，换一道试试。";
+      els.message.textContent = `这${category === "recipe" ? "道" : "款"}${categoryConfig().noun}已经猜过了，换一${category === "recipe" ? "道" : "款"}试试。`;
       els.input.select();
       return;
     }
@@ -291,7 +434,7 @@
     els.input.value = "";
     els.message.textContent = "";
     if (guess.id === answer.id) finishGame(true);
-    else if (guesses.length >= MAX_GUESSES) finishGame(false);
+    else if (guesses.length >= guessLimit) finishGame(false);
     else saveGame();
     render();
     if (gameStatus === "playing") els.input.focus();
@@ -302,38 +445,6 @@
     saveStats(won);
   }
 
-  function shareText() {
-    const title = mode === "daily" ? `夜雀食堂今天的饭 #${beijingDayNumber() + 1}` : "夜雀食堂今天的饭 · 无限模式";
-    const score = gameStatus === "won" ? `${guesses.length}/${MAX_GUESSES}` : `X/${MAX_GUESSES}`;
-    const keys = ["cookware", "price", "level", "ingredients", "time", "positiveTags", "negativeTags", "acquisition", "dlc"];
-    const rows = guesses.map((guess) => {
-      const states = comparisonFor(guess);
-      return keys.map((key) => states[key] === "exact" ? "🟩" : states[key] === "near" ? "🟨" : "⬛").join("");
-    });
-    return `${title} ${score}\n\n${rows.join("\n")}\n\n你能猜出这道料理吗？`;
-  }
-  async function shareResult() {
-    const text = shareText();
-    try {
-      if (navigator.share) await navigator.share({ text });
-      else {
-        await navigator.clipboard.writeText(text);
-        showToast("结果已复制，且不会泄露答案");
-      }
-    } catch (error) {
-      if (error?.name !== "AbortError") {
-        const area = document.createElement("textarea");
-        area.value = text;
-        area.style.position = "fixed";
-        area.style.opacity = "0";
-        document.body.appendChild(area);
-        area.select();
-        document.execCommand("copy");
-        area.remove();
-        showToast("结果已复制，且不会泄露答案");
-      }
-    }
-  }
   function showToast(text) {
     clearTimeout(toastTimer);
     els.toast.textContent = text;
@@ -342,6 +453,7 @@
   }
 
   els.form.addEventListener("submit", submitGuess);
+  els.limitForm.addEventListener("submit", applyGuessLimit);
   els.input.addEventListener("input", () => { els.message.textContent = ""; renderSuggestions(); });
   els.input.addEventListener("keydown", (event) => {
     if (els.suggestions.hidden) return;
@@ -360,8 +472,8 @@
   });
   els.input.addEventListener("blur", () => setTimeout(closeSuggestions, 120));
   document.querySelectorAll(".mode-button").forEach((button) => button.addEventListener("click", () => loadGame(button.dataset.mode, false)));
+  document.querySelectorAll(".category-button").forEach((button) => button.addEventListener("click", () => switchCategory(button.dataset.category)));
   els.newGame.addEventListener("click", () => loadGame("infinite", true));
-  els.share.addEventListener("click", shareResult);
   document.querySelector("#help-button").addEventListener("click", () => els.help.showModal());
   document.querySelector("#stats-button").addEventListener("click", () => { updateStatsView(); els.stats.showModal(); });
   document.querySelectorAll("[data-close]").forEach((button) => button.addEventListener("click", () => button.closest("dialog").close()));
@@ -375,11 +487,7 @@
     }
   });
 
-  if (!DATA.length) {
-    els.message.textContent = "题库为空，请先在 data.js 中添加料理数据。";
-    els.input.disabled = true;
-    els.submit.disabled = true;
-  } else {
-    loadGame("daily", false);
-  }
+  const initialConfig = categoryConfig();
+  guessLimit = clampGuessLimit(localStorage.getItem(initialConfig.storage.guessLimit) || initialConfig.defaultGuesses);
+  loadGame("daily", false);
 })();

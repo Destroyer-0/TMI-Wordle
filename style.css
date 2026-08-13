@@ -121,6 +121,68 @@ h1 { margin: 0; font-family: var(--font-title); font-size: clamp(2rem, 7vw, 3.4r
   font-weight: 700;
 }
 .mode-button.active { background: var(--white); color: var(--ink); box-shadow: 0 2px 8px rgba(55, 42, 28, 0.08); }
+.play-options {
+  width: fit-content;
+  max-width: 100%;
+  margin: 12px auto 0;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 10px;
+}
+.category-switch {
+  padding: 4px;
+  display: flex;
+  gap: 4px;
+  border: 1px solid rgba(222, 211, 196, 0.9);
+  border-radius: 12px;
+  background: rgba(255, 253, 249, 0.72);
+}
+.category-button {
+  padding: 7px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+.category-button.active { background: var(--ink); color: white; }
+.limit-control {
+  width: fit-content;
+  margin: 0;
+  padding: 4px 4px 4px 12px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(222, 211, 196, 0.9);
+  border-radius: 12px;
+  background: rgba(255, 253, 249, 0.72);
+  color: var(--muted);
+}
+.limit-control label { margin: 0; font-size: 0.78rem; font-weight: 800; }
+.limit-control input {
+  width: 52px;
+  height: 32px;
+  padding: 0 5px;
+  text-align: center;
+  border-radius: 8px;
+  font-weight: 800;
+}
+.limit-control span { font-size: 0.78rem; }
+.limit-control button {
+  height: 32px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--ink);
+  color: white;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+.limit-control button:hover { background: var(--accent-dark); }
 
 .game-card {
   padding: clamp(18px, 4vw, 34px);
@@ -195,6 +257,12 @@ input:disabled { color: var(--muted); background: #f0ece6; }
 .result-table th:nth-child(7),
 .result-table th:nth-child(8) { width: 220px; }
 .result-table th:nth-child(9) { width: 300px; }
+.result-table.beverage-table { min-width: 660px; }
+.result-table.beverage-table th:first-child { width: 150px; }
+.result-table.beverage-table th:nth-child(2),
+.result-table.beverage-table th:nth-child(3),
+.result-table.beverage-table th:nth-child(5) { width: 100px; }
+.result-table.beverage-table th:nth-child(4) { width: 250px; }
 .result-table td {
   min-height: 68px;
   padding: 8px;
@@ -248,6 +316,7 @@ dialog::backdrop { background: rgba(37, 35, 31, 0.35); backdrop-filter: blur(3px
 .example-row { display: flex; gap: 6px; margin: 16px 0; }
 .example-row span { padding: 10px; border-radius: 8px; color: white; font-size: 0.82rem; font-weight: 800; }
 .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 18px 22px; text-align: center; }
+.stats-scope { width: fit-content; margin: 8px auto 0; padding: 5px 10px; border-radius: 999px; background: var(--paper-deep); color: var(--accent-dark); font-size: 0.76rem; font-weight: 800; }
 .stats-grid div { min-width: 0; }
 .stats-grid strong { display: block; font-family: var(--font-body); font-size: 1.7rem; }
 .stats-grid span { display: block; margin-top: 5px; color: var(--muted); font-size: 0.75rem; }
@@ -263,11 +332,13 @@ dialog::backdrop { background: rgba(37, 35, 31, 0.35); backdrop-filter: blur(3px
   .site-header { width: min(100% - 24px, 1040px); height: 62px; }
   .game-shell { width: min(100% - 20px, 1120px); }
   .hero { padding: 36px 4px 22px; }
+  .play-options { flex-direction: column; align-items: center; }
   .game-card { padding: 16px 12px 20px; border-radius: 18px; }
   .guess-controls { grid-template-columns: 1fr; }
   .primary-button { width: 100%; }
   .result-wrap { margin-left: -8px; margin-right: -8px; }
   .result-table { min-width: 1540px; border-spacing: 5px; }
+  .result-table.beverage-table { min-width: 620px; }
   .result-table th:first-child { width: 135px; }
   .end-actions { flex-direction: column; }
   .end-actions .secondary-button { min-height: 46px; }

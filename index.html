@@ -4,11 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#f7f1e8" />
-    <meta name="description" content="夜雀食堂今天的饭：通过厨具、价格、食材与标签等线索猜出今日料理。" />
+    <meta name="description" content="夜雀食堂今天的饭：通过属性线索猜出今日料理或酒水。" />
     <title>夜雀食堂今天的饭</title>
     <link rel="icon" href="./logo.png" type="image/png" />
     <link rel="stylesheet" href="./style.css" />
     <script src="./data.js" defer></script>
+    <script src="./beverages.js" defer></script>
     <script src="./game.js" defer></script>
   </head>
   <body>
@@ -36,16 +37,29 @@
           <button class="mode-button active" type="button" data-mode="daily" aria-pressed="true">每日挑战</button>
           <button class="mode-button" type="button" data-mode="infinite" aria-pressed="false">无限模式</button>
         </div>
+        <div class="play-options">
+          <div class="category-switch" role="group" aria-label="猜题类别">
+            <button class="category-button active" type="button" data-category="recipe" aria-pressed="true">猜料理</button>
+            <button class="category-button" type="button" data-category="beverage" aria-pressed="false">猜酒水</button>
+          </div>
+          <form class="limit-control" id="limit-form">
+            <label for="max-guesses-input">猜测上限</label>
+            <input id="max-guesses-input" type="number" min="1" max="20" step="1" value="6" inputmode="numeric" aria-describedby="limit-hint" />
+            <span aria-hidden="true">次</span>
+            <button type="submit">应用</button>
+          </form>
+        </div>
+        <span class="sr-only" id="limit-hint">可设置一至二十次，不同次数分别保存进度和统计。</span>
       </section>
 
       <section class="game-card" aria-label="猜谜区域">
         <div class="round-meta">
           <span id="round-number">第 1 期</span>
-          <span id="attempt-counter">剩余 8 次</span>
+          <span id="attempt-counter">剩余 6 次</span>
         </div>
 
         <form id="guess-form" autocomplete="off">
-          <label for="guess-input">输入料理名称</label>
+          <label for="guess-input" id="guess-label">输入料理名称</label>
           <div class="guess-controls">
             <div class="autocomplete">
               <input
@@ -69,9 +83,9 @@
 
         <div class="result-wrap" id="result-wrap" hidden>
           <table class="result-table">
-            <caption class="sr-only">猜测结果与属性反馈</caption>
+            <caption class="sr-only" id="result-caption">料理猜测结果与属性反馈</caption>
             <thead>
-              <tr>
+              <tr id="result-head">
                 <th scope="col">料理</th>
                 <th scope="col">厨具</th>
                 <th scope="col">价格</th>
@@ -99,7 +113,6 @@
           <h2 id="end-title">猜中了！</h2>
           <p id="end-copy"></p>
           <div class="end-actions">
-            <button class="primary-button" id="share-button" type="button">分享结果</button>
             <button class="secondary-button" id="new-game-button" type="button">再来一局</button>
           </div>
         </section>
@@ -117,7 +130,7 @@
         <button class="close-button" type="button" data-close aria-label="关闭玩法说明">×</button>
       </div>
       <div class="dialog-content">
-        <p>你有 8 次机会猜出今天夜雀食堂出售的料理。输入料理名称，并从候选项中选择。</p>
+        <p>选择“猜料理”或“猜酒水”，在设定的次数内猜出每日答案。料理和酒水默认均为 6 次，也可在 1–20 次之间自由设置。</p>
         <div class="example-row" aria-label="反馈示例">
           <span class="feedback exact">煮锅</span>
           <span class="feedback near">海苔</span>
@@ -129,7 +142,7 @@
           <li><strong>灰色</strong>：与答案不同或没有重合。</li>
           <li><strong>↑ / ↓</strong>：答案的数字更高 / 更低。</li>
         </ul>
-        <p>每日挑战每天只有一个共同答案；无限模式可以一直玩。</p>
+        <p>每日挑战中，同一类别每天只有一个共同答案；无限模式可以一直玩。料理、酒水及不同猜测次数的进度和统计相互独立。</p>
       </div>
     </dialog>
 
@@ -138,13 +151,14 @@
         <h2 id="stats-title">游戏统计</h2>
         <button class="close-button" type="button" data-close aria-label="关闭统计">×</button>
       </div>
+      <p class="stats-scope" id="stats-scope">猜料理 · 6 次模式</p>
       <div class="stats-grid">
         <div><strong id="stat-played">0</strong><span>游戏</span></div>
         <div><strong id="stat-win-rate">0%</strong><span>胜率</span></div>
         <div><strong id="stat-streak">0</strong><span>当前连胜</span></div>
         <div><strong id="stat-best">0</strong><span>最高连胜</span></div>
       </div>
-      <p class="stats-note">完成一局后，统计会自动保存在这台设备上。</p>
+      <p class="stats-note">料理、酒水及不同猜测次数分别统计，并自动保存在这台设备上。</p>
     </dialog>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
