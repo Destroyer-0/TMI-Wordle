@@ -303,7 +303,7 @@
   }
 
   function shareText() {
-    const title = mode === "daily" ? `TMI Wordle 料理篇 #${beijingDayNumber() + 1}` : "TMI Wordle 料理篇 · 无限模式";
+    const title = mode === "daily" ? `夜雀食堂今天的饭 #${beijingDayNumber() + 1}` : "夜雀食堂今天的饭 · 无限模式";
     const score = gameStatus === "won" ? `${guesses.length}/${MAX_GUESSES}` : `X/${MAX_GUESSES}`;
     const keys = ["cookware", "price", "level", "ingredients", "time", "positiveTags", "negativeTags", "acquisition", "dlc"];
     const rows = guesses.map((guess) => {

@@ -62,7 +62,22 @@ button { color: inherit; }
   border-radius: 10px 10px 10px 3px;
 }
 
-.header-actions { display: flex; gap: 8px; }
+.header-actions { display: flex; align-items: center; gap: 8px; }
+.github-button {
+  width: 38px;
+  min-height: 38px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: rgba(255, 253, 249, 0.62);
+  color: var(--ink);
+  text-decoration: none;
+}
+.github-button img { width: 20px; height: 20px; display: block; }
+.github-button:hover { background: var(--white); border-color: #c8b8a4; }
 .icon-button, .close-button {
   width: 38px;
   height: 38px;
@@ -257,4 +272,8 @@ dialog::backdrop { background: rgba(37, 35, 31, 0.35); backdrop-filter: blur(3px
   .end-actions { flex-direction: column; }
   .end-actions .secondary-button { min-height: 46px; }
   .stats-grid { grid-template-columns: repeat(2, 1fr); row-gap: 20px; }
+}
+
+@media (max-width: 360px) {
+  .brand > span:last-child { display: none; }
 }
